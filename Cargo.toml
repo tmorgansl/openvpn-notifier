@@ -1,0 +1,12 @@
+[package]
+name = "openvpn_notifier"
+version = "0.1.0"
+authors = ["Thomas Morgan <tamorgan@outlook.com>"]
+edition = "2018"
+
+[dependencies]
+pushover = "0.3.0"
+pretty-bytes = "0.2.2"
+chrono = "0.4.6"
+time = "0.1.41"
+clap = "2.32.0"
