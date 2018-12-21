@@ -1,7 +1,6 @@
 use crate::conf;
 use crate::dispatcher;
 use chrono::prelude::{DateTime, Local, TimeZone};
-use std::boxed::Box;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Error, Write};
 use std::net::TcpStream;
@@ -25,14 +24,14 @@ pub trait ClientController {
     fn update_connected_clients(&mut self);
 }
 
-struct TCPController {
+struct TCPController<'a> {
     connection_string: String,
-    dispatcher: Box<dispatcher::Dispatcher>,
+    dispatcher: &'a dispatcher::Dispatcher,
     clients: HashMap<String, Client>,
     failed_calls: usize,
 }
 
-impl ClientController for TCPController {
+impl<'a> ClientController for TCPController<'a> {
     fn update_connected_clients(&mut self) {
         let new_clients = match get_new_clients(&self.connection_string) {
             Ok(c) => {
@@ -69,10 +68,10 @@ impl ClientController for TCPController {
     }
 }
 
-pub fn new(
+pub fn new<'a>(
     config: &conf::Config,
-    dispatcher: impl dispatcher::Dispatcher + 'static,
-) -> impl ClientController {
+    dispatcher: &'a dispatcher::Dispatcher,
+) -> impl ClientController + 'a {
     let mut connection_string = config.openvpn.address.clone();
     connection_string.push_str(":");
     connection_string.push_str(&mut config.openvpn.port.to_string());
@@ -82,7 +81,7 @@ pub fn new(
     ));
     TCPController {
         connection_string: connection_string,
-        dispatcher: Box::new(dispatcher),
+        dispatcher: dispatcher,
         clients: clients,
         failed_calls: 0,
     }
