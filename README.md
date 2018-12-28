@@ -19,19 +19,21 @@ You will need:-
 Cargo can be used to install the application from source
 
 ```
-git clone git@github.com:tmorgansl/openvpn_notifier.git
+git clone git@github.com:tmorgansl/openvpn-notifier.git
 cd openvpn_notifier
 cargo build --release
 ```
 
-This will create the target binary in `target/release`. The installation has been tested on stable linux, version 1.31.1.
+This will create the target binary in `target/release`.
+
+The installation has been tested on stable linux toolchain, v1.31.1.
 
 ### Running
 
 The binary file requires your application token and user key passed as command line arguments
 
 ```
-./openvpn_notifier --token=<TOKEN> --user_key=<USER_KEY>
+./openvpn-notifier --token=<TOKEN> --user_key=<USER_KEY>
 ```
 
 Once the application is running, it will poll the openvpn management address (default `localhost:5555`) every 5 seconds for changes in the number of clients.
@@ -39,7 +41,7 @@ Once the application is running, it will poll the openvpn management address (de
 Additional options can be found by using the help flag
 
 ```
-./openvpn_notifier -h
+./openvpn-notifier -h
 ```
 
 ## License
