@@ -3,7 +3,7 @@ use crate::openvpn;
 use pretty_bytes::converter::convert;
 use pushover::requests::message::SendMessage;
 use pushover::{SyncAPI, SyncAPIBuilder};
-use time::Duration;
+use chrono::Duration;
 
 pub trait Dispatcher {
     fn client_connected(&self, client: &openvpn::Client);

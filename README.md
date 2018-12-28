@@ -9,7 +9,7 @@ It is strongly encouraged to only run this against openvpn servers which have on
 ### Prerequisites
 
 You will need:-
-* [Rust nightly](https://www.rust-lang.org/tools/install) and cargo
+* [Rust stable](https://www.rust-lang.org/tools/install) and cargo
 * A running openvpn server with access to its management port
 * A [pushover account](https://pushover.net/login)
 * A user key and application token from pushover
@@ -24,7 +24,7 @@ cd openvpn_notifier
 cargo build --release
 ```
 
-This will create the target binary in `target/release`.
+This will create the target binary in `target/release`. The installation has been tested on stable linux, version 1.31.1.
 
 ### Running
 

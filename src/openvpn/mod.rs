@@ -4,7 +4,7 @@ use chrono::prelude::{DateTime, Local, TimeZone};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Error, Write};
 use std::net::TcpStream;
-use time::Duration;
+use chrono::Duration;
 
 const ENDING: &str = "END";
 const START_LINE: &str = "CLIENT_LIST";
