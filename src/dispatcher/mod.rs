@@ -1,13 +1,14 @@
 use crate::conf;
-use crate::openvpn;
+use chrono::prelude::{DateTime, Local};
+use chrono::Duration;
+use openvpn_management::Client;
 use pretty_bytes::converter::convert;
 use pushover::requests::message::SendMessage;
 use pushover::{SyncAPI, SyncAPIBuilder};
-use chrono::Duration;
 
 pub trait Dispatcher {
-    fn client_connected(&self, client: &openvpn::Client);
-    fn client_disconnected(&self, client: &openvpn::Client);
+    fn client_connected(&self, client: &Client);
+    fn client_disconnected(&self, client: &Client);
     fn alert(&self, body: String);
 }
 
@@ -18,21 +19,23 @@ struct Pushover {
 }
 
 impl Dispatcher for Pushover {
-    fn client_connected(&self, client: &openvpn::Client) {
-        let date_string = client.connected_since.format("%Y-%m-%d %H:%M:%S");
+    fn client_connected(&self, client: &Client) {
+        let date_string = client.connected_since().format("%Y-%m-%d %H:%M:%S");
         let body = format!(
             "client {} has connected from ip address {} on {} local time",
-            client.name, client.address, date_string
+            client.name(),
+            client.ip_address(),
+            date_string
         );
         self.alert(body);
     }
 
-    fn client_disconnected(&self, client: &openvpn::Client) {
+    fn client_disconnected(&self, client: &Client) {
         let body = format!("client {} has disconnected. They received {} of data and sent {} of data. Their session lasted approximately {}",
-        client.name,
-        convert(client.bytes_received),
-        convert(client.bytes_sent),
-        parse_duration(client.duration));
+        client.name(),
+        convert(client.bytes_received().clone()),
+        convert(client.bytes_sent().clone()),
+        parse_duration(client.connected_since()));
         self.alert(body);
     }
 
@@ -56,8 +59,13 @@ pub fn new(config: &conf::Config) -> impl Dispatcher {
     }
 }
 
-fn parse_duration(duration: Duration) -> String {
-    let num_seconds = duration.num_seconds();
+fn get_duration(start_time: &DateTime<Local>) -> Duration {
+    let now: DateTime<Local> = Local::now();
+    now.signed_duration_since(start_time.clone())
+}
+
+fn parse_duration(start_time: &DateTime<Local>) -> String {
+    let num_seconds = get_duration(start_time).num_seconds();
     let mut units = "seconds";
     let mut formated_value = num_seconds as f64;
     if num_seconds >= 3600 {

@@ -3,6 +3,7 @@ extern crate chrono;
 #[macro_use]
 extern crate clap;
 extern crate pretty_bytes;
+extern crate openvpn_management;
 
 mod conf;
 mod dispatcher;
@@ -15,6 +16,7 @@ fn main() {
     let config = conf::get_config();
     let dispatcher = dispatcher::new(&config);
     let mut controller = openvpn::new(&config, &dispatcher);
+
     loop {
         controller.update_connected_clients();
         thread::sleep(time::Duration::from_millis(5000));

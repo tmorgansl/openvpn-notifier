@@ -1,6 +1,6 @@
 [package]
 name = "openvpn-notifier"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Thomas Morgan <tamorgan@outlook.com>"]
 
 [dependencies]
@@ -9,3 +9,4 @@ pretty-bytes = "0.2.2"
 chrono = "0.4.6"
 time = "0.1.41"
 clap = "2.32.0"
+openvpn-management = "0.1.1"

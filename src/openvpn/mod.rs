@@ -1,39 +1,24 @@
 use crate::conf;
 use crate::dispatcher;
-use chrono::prelude::{DateTime, Local, TimeZone};
+use openvpn_management::{Client, EventManager};
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Error, Write};
-use std::net::TcpStream;
-use chrono::Duration;
 
-const ENDING: &str = "END";
-const START_LINE: &str = "CLIENT_LIST";
-const UNDEF: &str = "UNDEF";
 const CRITICAL_FAILURE_COUNT: usize = 3;
-
-pub struct Client {
-    pub name: String,
-    pub address: String,
-    pub connected_since: DateTime<Local>,
-    pub duration: Duration,
-    pub bytes_received: f64,
-    pub bytes_sent: f64,
-}
 
 pub trait ClientController {
     fn update_connected_clients(&mut self);
 }
 
 struct TCPController<'a> {
-    connection_string: String,
     dispatcher: &'a dispatcher::Dispatcher,
+    manager: Box<openvpn_management::EventManager>,
     clients: HashMap<String, Client>,
     failed_calls: usize,
 }
 
 impl<'a> ClientController for TCPController<'a> {
     fn update_connected_clients(&mut self) {
-        let new_clients = match get_new_clients(&self.connection_string) {
+        let status = match self.manager.get_status() {
             Ok(c) => {
                 self.failed_calls = 0;
                 c
@@ -50,6 +35,9 @@ impl<'a> ClientController for TCPController<'a> {
                 return;
             }
         };
+
+        let new_clients = clients_to_hashmap(status.clients());
+
         for (name, client) in &self.clients {
             match new_clients.get(name) {
                 Some(_) => {}
@@ -75,71 +63,25 @@ pub fn new<'a>(
     let mut connection_string = config.openvpn.address.clone();
     connection_string.push_str(":");
     connection_string.push_str(&mut config.openvpn.port.to_string());
-    let clients = get_new_clients(&connection_string).expect(&format!(
-        "could not get initial clients from openvpn server at address {}",
-        connection_string
-    ));
+
+    let mut event_manager = openvpn_management::CommandManagerBuilder::new()
+        .management_url(&connection_string)
+        .build();
+    let status = event_manager
+        .get_status()
+        .expect("could not get initial clients from openvpn server");
     TCPController {
-        connection_string: connection_string,
         dispatcher: dispatcher,
-        clients: clients,
+        manager: Box::new(event_manager),
+        clients: clients_to_hashmap(status.clients()),
         failed_calls: 0,
     }
 }
 
-fn get_new_clients(connection_string: &str) -> Result<HashMap<String, Client>, Error> {
-    let mut stream = TcpStream::connect(connection_string)?;
-    stream.write("status\n".as_bytes())?;
-    let mut reader = BufReader::new(&stream);
-
-    let mut line = String::new();
-    while !line.trim().ends_with(ENDING) {
-        reader.read_line(&mut line).expect("Could not read");
+fn clients_to_hashmap(clients: &Vec<openvpn_management::Client>) -> HashMap<String, Client> {
+    let mut clients_map = HashMap::new();
+    for client in clients {
+        clients_map.insert(client.name().to_owned(), (*client).clone());
     }
-
-    Ok(parse_status_output(line))
-}
-
-fn parse_status_output(output: String) -> HashMap<String, Client> {
-    let split = output.split("\n");
-    let mut map = HashMap::new();
-    for s in split {
-        let line = String::from(s);
-        if line.starts_with(START_LINE) {
-            let client = parse_client(line);
-            if client.name != UNDEF {
-                map.insert(client.name.clone(), client);
-            }
-        }
-    }
-    map
-}
-
-fn parse_client(raw_client: String) -> Client {
-    let split = raw_client.split("\t");
-    let vec = split.collect::<Vec<&str>>();
-    let name = vec[1];
-    let address = vec[2].split(":").next().expect("malformed ip address");
-    let timestamp = vec[8].parse::<i64>().unwrap();
-    let bytes_received = vec[5].parse::<f64>().unwrap();
-    let bytes_sent = vec[6].parse::<f64>().unwrap();
-    Client {
-        name: String::from(name),
-        address: String::from(address),
-        connected_since: get_local_start_time(timestamp),
-        duration: get_duration(timestamp),
-        bytes_received: bytes_received,
-        bytes_sent: bytes_sent,
-    }
-}
-
-fn get_local_start_time(timestamp: i64) -> DateTime<Local> {
-    let datetime: DateTime<Local> = Local.timestamp(timestamp, 0);
-    datetime
-}
-
-fn get_duration(timestamp: i64) -> Duration {
-    let connected_at = get_local_start_time(timestamp);
-    let now: DateTime<Local> = Local::now();
-    now.signed_duration_since(connected_at)
+    clients_map
 }
