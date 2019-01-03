@@ -9,13 +9,17 @@ It is strongly encouraged to only run this against openvpn servers which have on
 ### Prerequisites
 
 You will need:-
-* [Rust stable](https://www.rust-lang.org/tools/install) and cargo
 * A running openvpn server with access to its management port
 * A [pushover account](https://pushover.net/login)
 * A user key and application token from pushover
 
+To compile from source you will require [Rust stable](https://www.rust-lang.org/tools/install) and cargo
+
 ### Installing
 
+The easiest way to install the application is to pull the latest binary from the [release page](https://github.com/tmorgansl/openvpn-notifier/releases)
+
+#### Complile from Source
 Cargo can be used to install the application from source
 
 ```
