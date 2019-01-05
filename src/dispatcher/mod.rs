@@ -33,8 +33,8 @@ impl Dispatcher for Pushover {
     fn client_disconnected(&self, client: &Client) {
         let body = format!("client {} has disconnected. They received {} of data and sent {} of data. Their session lasted approximately {}",
         client.name(),
-        convert(client.bytes_received().clone()),
-        convert(client.bytes_sent().clone()),
+        convert(*client.bytes_received()),
+        convert(*client.bytes_sent()),
         parse_duration(client.connected_since()));
         self.alert(body);
     }
@@ -53,7 +53,7 @@ impl Dispatcher for Pushover {
 pub fn new(config: &conf::Config) -> impl Dispatcher {
     let api = SyncAPIBuilder::new().build().expect("Error creating API");
     Pushover {
-        api: api,
+        api,
         token: config.pushover.token.clone(),
         user_key: config.pushover.user_key.clone(),
     }

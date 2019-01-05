@@ -62,7 +62,7 @@ pub fn new<'a>(
 ) -> impl ClientController + 'a {
     let mut connection_string = config.openvpn.address.clone();
     connection_string.push_str(":");
-    connection_string.push_str(&mut config.openvpn.port.to_string());
+    connection_string.push_str(&config.openvpn.port.to_string());
 
     let mut event_manager = openvpn_management::CommandManagerBuilder::new()
         .management_url(&connection_string)
@@ -71,14 +71,14 @@ pub fn new<'a>(
         .get_status()
         .expect("could not get initial clients from openvpn server");
     TCPController {
-        dispatcher: dispatcher,
+        dispatcher,
         manager: Box::new(event_manager),
         clients: clients_to_hashmap(status.clients()),
         failed_calls: 0,
     }
 }
 
-fn clients_to_hashmap(clients: &Vec<openvpn_management::Client>) -> HashMap<String, Client> {
+fn clients_to_hashmap(clients: &[openvpn_management::Client]) -> HashMap<String, Client> {
     let mut clients_map = HashMap::new();
     for client in clients {
         clients_map.insert(client.name().to_owned(), (*client).clone());
