@@ -1,5 +1,5 @@
 use crate::conf;
-use chrono::prelude::{DateTime, Local};
+use chrono::prelude::{DateTime, Local, Utc};
 use chrono::Duration;
 use openvpn_management::Client;
 use pretty_bytes::converter::convert;
@@ -20,7 +20,10 @@ struct Pushover {
 
 impl Dispatcher for Pushover {
     fn client_connected(&self, client: &Client) {
-        let date_string = client.connected_since().format("%Y-%m-%d %H:%M:%S");
+        let date_string = client
+            .connected_since()
+            .with_timezone(&Local)
+            .format("%Y-%m-%d %H:%M:%S");
         let body = format!(
             "client {} has connected from ip address {} on {} local time",
             client.name(),
@@ -33,8 +36,8 @@ impl Dispatcher for Pushover {
     fn client_disconnected(&self, client: &Client) {
         let body = format!("client {} has disconnected. They received {} of data and sent {} of data. Their session lasted approximately {}",
         client.name(),
-        convert(*client.bytes_received()),
-        convert(*client.bytes_sent()),
+        convert(client.bytes_received()),
+        convert(client.bytes_sent()),
         parse_duration(client.connected_since()));
         self.alert(body);
     }
@@ -59,12 +62,12 @@ pub fn new(config: &conf::Config) -> impl Dispatcher {
     }
 }
 
-fn get_duration(start_time: &DateTime<Local>) -> Duration {
-    let now: DateTime<Local> = Local::now();
+fn get_duration(start_time: &DateTime<Utc>) -> Duration {
+    let now: DateTime<Utc> = Utc::now();
     now.signed_duration_since(start_time.clone())
 }
 
-fn parse_duration(start_time: &DateTime<Local>) -> String {
+fn parse_duration(start_time: &DateTime<Utc>) -> String {
     let num_seconds = get_duration(start_time).num_seconds();
     let mut units = "seconds";
     let mut formated_value = num_seconds as f64;

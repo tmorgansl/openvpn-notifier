@@ -1,9 +1,9 @@
-extern crate pushover;
 extern crate chrono;
+extern crate pushover;
 #[macro_use]
 extern crate clap;
-extern crate pretty_bytes;
 extern crate openvpn_management;
+extern crate pretty_bytes;
 
 mod conf;
 mod dispatcher;
