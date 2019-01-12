@@ -85,3 +85,133 @@ fn clients_to_hashmap(clients: &[openvpn_management::Client]) -> HashMap<String,
     }
     clients_map
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::prelude::{DateTime, TimeZone, Utc};
+    use dispatcher::Dispatcher;
+    use openvpn_management::{Client, OpenvpnError, Result, Status};
+    use simulacrum::*;
+
+    create_mock! {
+        impl EventManager for EventManagerMock (self) {
+            expect_get_status("get_status"):
+            fn get_status(&mut self) -> Result<Status>;
+        }
+    }
+
+    create_mock! {
+        impl Dispatcher for DispatcherMock (self) {
+            expect_client_connected("client_connected"):
+            fn client_connected(&self, client: &Client);
+
+            expect_client_disconnected("client_disconnected"):
+            fn client_disconnected(&self, client: &Client);
+
+            expect_alert("alert"):
+            fn alert(&self, body: String);
+        }
+    }
+
+    fn new_mock_client(
+        name: &'static str,
+        ip_address: &'static str,
+        epoch_seconds: i64,
+        bytes_received: f64,
+        bytes_sent: f64,
+    ) -> Client {
+        let datetime: DateTime<Utc> = Utc.timestamp(epoch_seconds, 0);
+        Client::new(
+            name.to_string(),
+            ip_address.to_string(),
+            datetime,
+            bytes_received,
+            bytes_sent,
+        )
+    }
+
+    #[test]
+    fn test_client_connected() {
+        let mut event_manager = EventManagerMock::new();
+        let mut dispatcher = DispatcherMock::new();
+
+        let mut expected_clients = Vec::new();
+        let client = new_mock_client("test-client", "127.0.0.1", 1_546_277_714, 100.0, 200.0);
+
+        expected_clients.push(client);
+
+        let status = Status::new(expected_clients);
+
+        event_manager
+            .expect_get_status()
+            .called_once()
+            .returning(move |_| Ok(status.clone()));
+
+        dispatcher.expect_client_connected().called_once();
+
+        let mut tcp_controller = TCPController {
+            dispatcher: &dispatcher,
+            manager: Box::new(event_manager),
+            clients: HashMap::new(),
+            failed_calls: 0,
+        };
+
+        tcp_controller.update_connected_clients();
+    }
+
+    #[test]
+    fn test_client_disconnected() {
+        let mut event_manager = EventManagerMock::new();
+        let mut dispatcher = DispatcherMock::new();
+
+        let mut current_clients = HashMap::new();
+
+        let client = new_mock_client("test-client", "127.0.0.1", 1_546_277_714, 100.0, 200.0);
+        current_clients.insert("test-client".to_string(), client);
+
+        let status = Status::new(Vec::new());
+
+        event_manager
+            .expect_get_status()
+            .called_once()
+            .returning(move |_| Ok(status.clone()));
+
+        dispatcher.expect_client_disconnected().called_once();
+
+        let mut tcp_controller = TCPController {
+            dispatcher: &dispatcher,
+            manager: Box::new(event_manager),
+            clients: current_clients,
+            failed_calls: 0,
+        };
+
+        tcp_controller.update_connected_clients();
+    }
+
+    #[test]
+    fn test_client_alert() {
+        let mut event_manager = EventManagerMock::new();
+        let mut dispatcher = DispatcherMock::new();
+
+        event_manager
+            .expect_get_status()
+            .called_once()
+            .returning(move |_| {
+                Err(OpenvpnError::MalformedResponse(
+                    "something bad happened".to_string(),
+                ))
+            });
+
+        dispatcher.expect_alert().called_once();
+
+        let mut tcp_controller = TCPController {
+            dispatcher: &dispatcher,
+            manager: Box::new(event_manager),
+            clients: HashMap::new(),
+            failed_calls: CRITICAL_FAILURE_COUNT - 1,
+        };
+
+        tcp_controller.update_connected_clients();
+    }
+}

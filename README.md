@@ -1,4 +1,7 @@
-# Openvpn Notifier
+Openvpn Notifier
+=========================
+[![Build Status](https://travis-ci.com/tmorgansl/openvpn-notifier.svg?branch=master)](https://travis-ci.com/tmorgansl/openvpn-notifier)
+[![License](https://img.shields.io/github/license/tmorgansl/openvpn-notifier.svg)]()
 
 Sends notifications to [pushover](https://pushover.net/) when a client connects or disconnects from an openvpn server. The application is written in rust, purely as a learning exercise to get used to writing rust code.
 

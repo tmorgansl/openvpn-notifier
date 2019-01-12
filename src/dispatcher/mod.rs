@@ -34,11 +34,12 @@ impl Dispatcher for Pushover {
     }
 
     fn client_disconnected(&self, client: &Client) {
+        let duration = get_duration(client.connected_since());
         let body = format!("client {} has disconnected. They received {} of data and sent {} of data. Their session lasted approximately {}",
         client.name(),
         convert(client.bytes_received()),
         convert(client.bytes_sent()),
-        parse_duration(client.connected_since()));
+        parse_duration(&duration));
         self.alert(body);
     }
 
@@ -67,8 +68,8 @@ fn get_duration(start_time: &DateTime<Utc>) -> Duration {
     now.signed_duration_since(start_time.clone())
 }
 
-fn parse_duration(start_time: &DateTime<Utc>) -> String {
-    let num_seconds = get_duration(start_time).num_seconds();
+fn parse_duration(duration: &Duration) -> String {
+    let num_seconds = duration.num_seconds();
     let mut units = "seconds";
     let mut formated_value = num_seconds as f64;
     if num_seconds >= 3600 {
@@ -79,4 +80,43 @@ fn parse_duration(start_time: &DateTime<Utc>) -> String {
         units = "minutes";
     }
     format!("{:.1} {}", formated_value, units)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::prelude::*;
+
+    #[test]
+    fn test_parse_duration_seconds() {
+        let connect_time = Utc.ymd(2019, 1, 1).and_hms(1, 0, 30);
+        let now = Utc.ymd(2019, 1, 1).and_hms(1, 0, 40);
+        let duration = now.signed_duration_since(connect_time);
+
+        let output = parse_duration(&duration);
+
+        assert_eq!("10.0 seconds", output);
+    }
+
+    #[test]
+    fn test_parse_duration_minutes() {
+        let connect_time = Utc.ymd(2019, 1, 1).and_hms(1, 0, 30);
+        let now = Utc.ymd(2019, 1, 1).and_hms(1, 10, 30);
+        let duration = now.signed_duration_since(connect_time);
+
+        let output = parse_duration(&duration);
+
+        assert_eq!("10.0 minutes", output);
+    }
+
+    #[test]
+    fn test_parse_duration_hours() {
+        let connect_time = Utc.ymd(2019, 1, 1).and_hms(1, 0, 30);
+        let now = Utc.ymd(2019, 1, 1).and_hms(11, 0, 30);
+        let duration = now.signed_duration_since(connect_time);
+
+        let output = parse_duration(&duration);
+
+        assert_eq!("10.0 hours", output);
+    }
 }

@@ -1,0 +1,28 @@
+language: rust
+
+rust:
+  - stable
+  - beta
+  - nightly
+
+matrix:
+  allow_failures:
+    - rust: nightly
+    
+cache: cargo
+
+before_script:
+  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+    rustup component add clippy;
+    rustup component add rustfmt;
+  fi
+
+script:
+  - cargo build
+  - cargo test
+  - if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then 
+      cargo fmt --all -- --check;
+    fi
+  - if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then 
+      cargo clippy --all-targets --all-features -- -D warnings;
+    fi

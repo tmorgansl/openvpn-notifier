@@ -4,6 +4,8 @@ extern crate pushover;
 extern crate clap;
 extern crate openvpn_management;
 extern crate pretty_bytes;
+#[cfg(test)]
+extern crate simulacrum;
 
 mod conf;
 mod dispatcher;
