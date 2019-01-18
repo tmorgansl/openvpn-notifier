@@ -51,6 +51,16 @@ Additional options can be found by using the help flag
 ./openvpn-notifier -h
 ```
 
+## FAQ
+Q. When some clients disconnect I get the notification hours later, what's going on?
+
+A. When the openvpn server is in UDP mode, not all clients will send the disconnect notification by default. Instead, the client's session will be cleaned up after a long timeout period. To resolve this issue, add the following line to the client's .ovpn file
+```
+explicit-exit-notify 2
+```
+
+For more details, consult the [openvpn manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/).
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
